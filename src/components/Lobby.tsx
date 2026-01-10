@@ -10,9 +10,10 @@ interface LobbyProps {
     isSyncing?: boolean;
     totalDuration?: number; // New prop
     onAskTrainer: () => void;
+    onOpenFoodDiary: () => void;
 }
 
-export const Lobby: React.FC<LobbyProps> = ({ todayTemplate, onStart, onOpenSettings, todayName, isSyncing, totalDuration, onAskTrainer }) => {
+export const Lobby: React.FC<LobbyProps> = ({ todayTemplate, onStart, onOpenSettings, todayName, isSyncing, totalDuration, onAskTrainer, onOpenFoodDiary }) => {
     // Get current date info
     const now = new Date();
     const monthNames = ['ЯНВАРЬ', 'ФЕВРАЛЬ', 'МАРТ', 'АПРЕЛЬ', 'МАЙ', 'ИЮНЬ',
@@ -31,6 +32,12 @@ export const Lobby: React.FC<LobbyProps> = ({ todayTemplate, onStart, onOpenSett
                     <Text className="text-gray-500 font-mono text-sm tracking-wider mt-1">{dayOfWeekShort} {dayOfMonth}</Text>
                 </View>
                 <View className="flex-row gap-2">
+                    <TouchableOpacity
+                        onPress={onOpenFoodDiary}
+                        className="w-12 h-12 rounded bg-gray-900 items-center justify-center border border-gray-800"
+                    >
+                        <Text className="text-2xl">🍽️</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity
                         onPress={onAskTrainer}
                         className="w-12 h-12 rounded bg-gray-900 items-center justify-center border border-gray-800"

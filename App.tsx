@@ -1,6 +1,6 @@
 import './global.css';
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, Modal } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,6 +15,7 @@ import { Dashboard } from './src/components/Dashboard';
 import { PrepScreen } from './src/components/PrepScreen';
 import { OnboardingScreen } from './src/components/Onboarding/OnboardingScreen';
 import { TrainerModal } from './src/components/TrainerModal';
+import { FoodDiaryScreen } from './src/components/FoodDiary/FoodDiaryScreen';
 import { loadLocalHistory, HistoryState } from './src/utils/historyStore';
 import { useFonts } from 'expo-font';
 
@@ -33,6 +34,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showTrainerModal, setShowTrainerModal] = useState(false);
+  const [showFoodDiary, setShowFoodDiary] = useState(false);
 
   // App State
   const [templates, setTemplates] = useState<WorkoutTemplate[]>(INITIAL_TEMPLATES);
@@ -219,6 +221,7 @@ export default function App() {
           onStart={startPrep}
           onOpenSettings={() => setView('SETTINGS')}
           onAskTrainer={() => setShowTrainerModal(true)}
+          onOpenFoodDiary={() => setShowFoodDiary(true)}
           isSyncing={isSyncing}
           totalDuration={activeTimeline.length > 0
             ? Math.round(activeTimeline.reduce((acc, b) => acc + (b.duration || 0), 0) / 60)
@@ -266,6 +269,18 @@ export default function App() {
           userProfile={userProfile}
         />
       )}
+
+      {/* Food Diary Modal */}
+      <Modal
+        visible={showFoodDiary}
+        animationType="slide"
+        presentationStyle="fullScreen"
+      >
+        <FoodDiaryScreen
+          userProfile={userProfile}
+          onClose={() => setShowFoodDiary(false)}
+        />
+      </Modal>
     </View>
   );
 }

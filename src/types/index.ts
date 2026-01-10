@@ -132,3 +132,5 @@ export interface NutritionPlan {
     fats: number;
     carbs: number;
 }
+
+export * from './food';
