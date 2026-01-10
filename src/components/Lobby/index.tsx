@@ -7,6 +7,7 @@ interface LobbyProps {
     todayTemplate?: WorkoutTemplate;
     onStart: () => void;
     onOpenSettings: () => void;
+    onOpenProfile: () => void; // New prop
     todayName: string;
     isSyncing?: boolean;
     totalDuration?: number;
@@ -22,6 +23,7 @@ export const Lobby: React.FC<LobbyProps> = ({
     todayTemplate,
     onStart,
     onOpenSettings,
+    onOpenProfile,
     todayName,
     isSyncing,
     totalDuration,
@@ -52,9 +54,19 @@ export const Lobby: React.FC<LobbyProps> = ({
     return (
         <View className="h-full w-full bg-black p-6 pt-8">
             {/* Header */}
-            <View className="mb-8">
-                <Text className="text-white font-sans font-bold text-3xl uppercase tracking-tighter">{currentMonth}</Text>
-                <Text className="text-gray-500 font-mono text-sm tracking-wider mt-1">{todayName} {dayOfMonth}</Text>
+            <View className="mb-8 flex-row justify-between items-start">
+                <View>
+                    <Text className="text-white font-sans font-bold text-3xl uppercase tracking-tighter">{currentMonth}</Text>
+                    <Text className="text-gray-500 font-mono text-sm tracking-wider mt-1">{todayName} {dayOfMonth}</Text>
+                </View>
+
+                {/* Settings Button */}
+                <TouchableOpacity
+                    onPress={onOpenSettings}
+                    className="w-10 h-10 rounded-full bg-gray-900 border border-gray-700 items-center justify-center"
+                >
+                    <Text className="text-xl">⚙️</Text>
+                </TouchableOpacity>
             </View>
 
             {/* Grid */}
@@ -115,7 +127,7 @@ export const Lobby: React.FC<LobbyProps> = ({
                 <LobbyCard
                     title="ПРОФИЛЬ"
                     icon="👤"
-                    onPress={onOpenSettings}
+                    onPress={onOpenProfile}
                     actionLabel="НАСТРОЙКИ"
                 >
                     <View>
@@ -149,14 +161,8 @@ export const Lobby: React.FC<LobbyProps> = ({
 
             </View>
 
-            {/* Quick Actions / Floating or Bottom? 
-                Actually design says 4 cards. We can leave trainer button floating or somewhere?
-                The requirement didn't specify leaving the trainer button.
-                But it's a useful feature. Let's add it as a small floating bubble or header action? 
-                The design request didn't mention it, but I shouldn't remove features unless asked.
-                I'll put it back in the header or user might miss it.
-            */}
-            <View className="absolute top-12 right-6">
+            {/* Quick Actions */}
+            <View className="absolute top-28 right-6">
                 <TouchableOpacity
                     onPress={onAskTrainer}
                     className="w-10 h-10 rounded-full bg-gray-900 border border-gray-700 items-center justify-center shadow-lg"

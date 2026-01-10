@@ -18,6 +18,7 @@ interface SettingsProps {
     onClose: () => void;
     userProfile: UserProfile | null;
     onUpdateProfile: (p: UserProfile) => void;
+    initialTab?: 'ARSENAL' | 'SCHEDULE' | 'PARAMS' | 'HISTORY' | 'PROFILE'; // New Prop
 }
 
 interface SelectionModalProps {
@@ -50,9 +51,10 @@ export const Settings: React.FC<SettingsProps> = ({
     templates, schedule, workoutSettings,
     onUpdateTemplate, onUpdateSchedule, onUpdateWorkoutSettings,
     onHistoryChange, onClose,
-    userProfile, onUpdateProfile
+    userProfile, onUpdateProfile,
+    initialTab = 'ARSENAL' // Default
 }) => {
-    const [activeTab, setActiveTab] = useState<'ARSENAL' | 'SCHEDULE' | 'PARAMS' | 'HISTORY' | 'PROFILE'>('ARSENAL');
+    const [activeTab, setActiveTab] = useState<'ARSENAL' | 'SCHEDULE' | 'PARAMS' | 'HISTORY' | 'PROFILE'>(initialTab);
     const [showWizard, setShowWizard] = useState(false);
     const [wizardSlotId, setWizardSlotId] = useState('');
     const [editingTemplate, setEditingTemplate] = useState<WorkoutTemplate | undefined>(undefined);

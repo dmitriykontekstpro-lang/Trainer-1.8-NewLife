@@ -39,6 +39,15 @@ export default function App() {
   const [showFoodDiary, setShowFoodDiary] = useState(false);
   const [dailySummary, setDailySummary] = useState<DailyNutritionSummary | null>(null);
 
+  // Settings Navigation
+  type SettingsTab = 'ARSENAL' | 'SCHEDULE' | 'PARAMS' | 'HISTORY' | 'PROFILE';
+  const [initialSettingsTab, setInitialSettingsTab] = useState<SettingsTab>('ARSENAL');
+
+  const openSettings = (tab: SettingsTab = 'ARSENAL') => {
+    setInitialSettingsTab(tab);
+    setView('SETTINGS');
+  };
+
   // App State
   const [templates, setTemplates] = useState<WorkoutTemplate[]>(INITIAL_TEMPLATES);
   const [schedule, setSchedule] = useState<WeeklySchedule>(INITIAL_SCHEDULE);
@@ -240,7 +249,8 @@ export default function App() {
           todayTemplate={todayTemplate}
           todayName={DAYS_OF_WEEK[todayIndex]}
           onStart={startPrep}
-          onOpenSettings={() => setView('SETTINGS')}
+          onOpenSettings={() => openSettings('ARSENAL')}
+          onOpenProfile={() => openSettings('PROFILE')}
           onAskTrainer={() => setShowTrainerModal(true)}
           onOpenFoodDiary={() => setShowFoodDiary(true)}
           isSyncing={isSyncing}
@@ -276,6 +286,7 @@ export default function App() {
           schedule={schedule}
           workoutSettings={workoutSettings}
           userProfile={userProfile}
+          initialTab={initialSettingsTab}
           onUpdateTemplate={handleUpdateTemplate}
           onUpdateSchedule={handleUpdateSchedule}
           onUpdateWorkoutSettings={handleUpdateWorkoutSettings}
