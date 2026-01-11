@@ -59,15 +59,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialTimeline, onFinish,
             return;
         }
 
-        // 3. NEW EXERCISE - Request weight on first set
-        if (block.type === BlockType.WORK && block.isNewExercise && block.setNumber === 1 && block.exerciseId) {
-            speak(`Новое упражнение: ${block.exerciseName}. Установите вес снаряда.`);
-            setTargetExerciseId(block.exerciseId);
-            setTimeout(() => {
-                setShowCamera(true);
-                setIsPaused(true);
-            }, 2000);
-            return;
+        // 3. WEIGHT INPUT REQUEST (For new exercises or manual confirmation)
+        if (block.requiresWeightInput && block.exerciseId) {
+            // Only ask if we haven't manually set a weight yet in this session
+            const alreadySet = editedWeights[block.exerciseId];
+            if (!alreadySet) {
+                speak(`Новое упражнение. Укажите рабочий вес, используя клавиатуру.`);
+                setTargetExerciseId(block.exerciseId);
+                setTimeout(() => {
+                    setShowCamera(true);
+                    setIsPaused(true);
+                }, 1000);
+                return;
+            }
         }
 
         // Normal Flow
@@ -470,7 +474,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialTimeline, onFinish,
                         <View className="flex-row items-end justify-center gap-4">
                             <View className="items-center">
                                 <Text className="text-6xl font-mono font-bold text-flow-green">{displayWeight}</Text>
-                                <Text className="text-xs text-gray-400 font-sans tracking-widest uppercase">КГ</Text>
+                                <View className="flex-row items-center gap-2">
+                                    <Text className="text-xs text-gray-400 font-sans tracking-widest uppercase">КГ</Text>
+                                    {currentBlock.statsDisplay && (
+                                        <View className="flex-row bg-gray-900 px-2 py-1 rounded gap-2 ml-1">
+                                            <Text className="text-[10px] text-blue-400 font-mono">#{currentBlock.statsDisplay.count}</Text>
+                                            <Text className="text-[10px] text-green-400 font-mono">+{currentBlock.statsDisplay.gain}kg</Text>
+                                        </View>
+                                    )}
+                                </View>
                             </View>
                             <Text className="text-4xl text-gray-600 font-thin mb-4">/</Text>
                             <View className="items-center">

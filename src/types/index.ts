@@ -68,6 +68,11 @@ export interface TimelineBlock {
     cycleIndex?: number; // 0-4
     muscleGroup?: MuscleGroup;
     customLabel?: string;
+    requiresWeightInput?: boolean; // If true, pauses workout to ask for weight (New exercises)
+    statsDisplay?: {
+        count: number;
+        gain: number;
+    };
 }
 
 export interface WeeklySchedule {

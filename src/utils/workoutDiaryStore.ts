@@ -146,3 +146,40 @@ export const saveWorkoutLog = async (
         throw e;
     }
 };
+
+
+export interface ExerciseHistorySnapshot {
+    last: FinishedExerciseData;
+    startWeight: number;
+}
+
+/**
+ * Get a snapshot of the latest performance for every exercise + Start Weight.
+ * Used for fast progression calculation.
+ */
+export const getExerciseSnapshot = async (): Promise<Record<string, ExerciseHistorySnapshot>> => {
+    try {
+        const history = await fetchWorkoutHistory();
+        const snapshot: Record<string, ExerciseHistorySnapshot> = {};
+
+        // History is DESC (Newest First).
+        // Iterate to find Last (first encountered) and Start (last encountered)
+        history.forEach(day => {
+            day.exercises.forEach(ex => {
+                if (ex.skipped) return; // Ignore skips for stats
+
+                if (!snapshot[ex.name]) {
+                    // First encounter (Newest) -> Initialize
+                    snapshot[ex.name] = { last: ex, startWeight: ex.weight };
+                }
+                // Keep updating startWeight as we go back in time
+                snapshot[ex.name].startWeight = ex.weight;
+            });
+        });
+
+        return snapshot;
+    } catch (e) {
+        console.error('[WorkoutStore] Snapshot failed', e);
+        return {};
+    }
+};
