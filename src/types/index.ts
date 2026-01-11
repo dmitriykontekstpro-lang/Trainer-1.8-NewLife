@@ -89,7 +89,7 @@ export type BodyFatLevel = 'LOW' | 'MEDIUM' | 'HIGH'; // <15%, 15-25%, >25%
 export type MainGoal = 'WEIGHT_LOSS' | 'MUSCLE_GAIN' | 'RECOMPOSITION' | 'STRENGTH' | 'ENDURANCE' | 'MAINTENANCE' | 'CUTTING';
 export type ExperienceLevel = 'BEGINNER' | 'AMATEUR' | 'ADVANCED';
 export type TrainingLocation = 'GYM' | 'HOME' | 'HOME_BASIC' | 'STREET';
-export type ActivityLevel = 'SEDENTARY' | 'LIGHT' | 'MODERATE' | 'HEAVY';
+export type ActivityLevel = 'SEDENTARY' | 'LIGHT' | 'MODERATE' | 'HEAVY' | 'EXTREME';
 export type SleepDuration = 'LESS_6' | '7_8' | 'MORE_9';
 
 export interface UserProfile {

@@ -33,6 +33,7 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile: initialPr
     });
 
     const [isGoalOpen, setIsGoalOpen] = useState(false);
+    const [isActivityOpen, setIsActivityOpen] = useState(false);
     const [projectedNutrition, setProjectedNutrition] = useState<NutritionPlan | null>(null);
 
     // Calc on change
@@ -81,6 +82,22 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile: initialPr
         }
     };
 
+    const getActivityLabel = (a?: string) => {
+        switch (a) {
+            case 'SEDENTARY': return 'СИДЯЧИЙ (1.2)';
+            case 'LIGHT': return 'НИЗКАЯ (1.375)';
+            case 'MODERATE': return 'УМЕРЕННАЯ (1.55)';
+            case 'HEAVY': return 'ВЫСОКАЯ (1.725)';
+            case 'EXTREME': return 'ЭКСТРЕМАЛЬНАЯ (1.9)';
+            default: return 'ВЫБРАТЬ';
+        }
+    };
+
+    const toggleActivityDropdown = () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setIsActivityOpen(!isActivityOpen);
+    };
+
     const toggleGoalDropdown = () => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setIsGoalOpen(!isGoalOpen);
@@ -91,17 +108,47 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile: initialPr
             <Text className="text-2xl font-bold text-white mb-6 uppercase">Профиль Атлета</Text>
 
             {/* CALCULATOR PREVIEW */}
+            {/* CALCULATOR PREVIEW */}
             {projectedNutrition && (
                 <View className="mb-6 bg-gray-900 border border-green-900/50 p-4 rounded-xl">
-                    <Text className="text-flow-green font-mono text-xs uppercase mb-2 text-center">РАСЧЕТНАЯ НОРМА (Mifflin-St Jeor)</Text>
-                    <View className="flex-row justify-between items-center mb-2">
-                        <Text className="text-white font-bold text-3xl">{projectedNutrition.targetCalories}</Text>
-                        <Text className="text-gray-400 text-xs">ККАЛ</Text>
+                    <Text className="text-flow-green font-mono text-xs uppercase mb-4 text-center">РАСЧЕТНАЯ НОРМА (Mifflin-St Jeor)</Text>
+
+                    {/* Stats Grid */}
+                    <View className="flex-row justify-between mb-4 border-b border-gray-800 pb-4">
+                        <View className="items-center">
+                            <Text className="text-gray-500 text-[10px] mb-1">BMR</Text>
+                            <Text className="text-white font-bold text-lg">{projectedNutrition.bmr}</Text>
+                        </View>
+                        <View className="items-center">
+                            <Text className="text-gray-500 text-[10px] mb-1">TDEE</Text>
+                            <Text className="text-white font-bold text-lg">{projectedNutrition.tdee}</Text>
+                        </View>
+                        <View className="items-center">
+                            <Text className="text-gray-500 text-[10px] mb-1">ЦЕЛЬ</Text>
+                            <Text className="text-flow-green font-bold text-lg">{projectedNutrition.targetCalories}</Text>
+                        </View>
+                        <View className="items-center">
+                            <Text className="text-gray-500 text-[10px] mb-1">ПРОФИЦИТ</Text>
+                            <Text className={`font-bold text-lg ${projectedNutrition.targetCalories - projectedNutrition.tdee >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                {projectedNutrition.targetCalories - projectedNutrition.tdee > 0 ? '+' : ''}{projectedNutrition.targetCalories - projectedNutrition.tdee}
+                            </Text>
+                        </View>
                     </View>
-                    <View className="flex-row gap-4">
-                        <Text className="text-gray-400 text-xs">Б: <Text className="text-white font-bold">{projectedNutrition.protein}</Text></Text>
-                        <Text className="text-gray-400 text-xs">Ж: <Text className="text-white font-bold">{projectedNutrition.fats}</Text></Text>
-                        <Text className="text-gray-400 text-xs">У: <Text className="text-white font-bold">{projectedNutrition.carbs}</Text></Text>
+
+                    {/* Macros */}
+                    <View className="flex-row justify-between px-4">
+                        <View className="items-center">
+                            <Text className="text-gray-500 text-[10px]">БЕЛКИ</Text>
+                            <Text className="text-white font-bold text-xl">{projectedNutrition.protein}г</Text>
+                        </View>
+                        <View className="items-center">
+                            <Text className="text-gray-500 text-[10px]">ЖИРЫ</Text>
+                            <Text className="text-white font-bold text-xl">{projectedNutrition.fats}г</Text>
+                        </View>
+                        <View className="items-center">
+                            <Text className="text-gray-500 text-[10px]">УГЛЕВОДЫ</Text>
+                            <Text className="text-white font-bold text-xl">{projectedNutrition.carbs}г</Text>
+                        </View>
                     </View>
                 </View>
             )}
@@ -190,19 +237,34 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile: initialPr
                 />
             </View>
 
-            {sectionTitle('ОПЫТ')}
-            <View className="flex-row gap-2">
-                {(['BEGINNER', 'AMATEUR', 'ADVANCED'] as ExperienceLevel[]).map(e => (
-                    <TouchableOpacity
-                        key={e}
-                        onPress={() => update('experience', e)}
-                        className={`flex-1 p-3 rounded border ${profile.experience === e ? 'bg-white border-white' : 'bg-gray-900 border-gray-700'}`}
-                    >
-                        <Text className={`text-center font-bold uppercase text-[10px] ${profile.experience === e ? 'text-black' : 'text-white'}`}>
-                            {e}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
+            {sectionTitle('УРОВЕНЬ АКТИВНОСТИ')}
+            <View className="z-20">
+                <TouchableOpacity
+                    onPress={toggleActivityDropdown}
+                    className="flex-row justify-between items-center p-4 bg-gray-900 border border-gray-700 rounded mb-2"
+                >
+                    <Text className="text-white font-bold uppercase">{getActivityLabel(profile.activityLevel)}</Text>
+                    <Text className="text-flow-green">{isActivityOpen ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
+
+                {isActivityOpen && (
+                    <View className="bg-gray-900 border border-gray-800 rounded mb-4 overflow-hidden">
+                        {(['SEDENTARY', 'LIGHT', 'MODERATE', 'HEAVY', 'EXTREME'] as ActivityLevel[]).filter(a => a !== profile.activityLevel).map(a => (
+                            <TouchableOpacity
+                                key={a}
+                                onPress={() => {
+                                    update('activityLevel', a);
+                                    toggleActivityDropdown();
+                                }}
+                                className="p-4 border-b border-gray-800 active:bg-gray-800"
+                            >
+                                <Text className="text-gray-300 font-bold uppercase text-xs">
+                                    {getActivityLabel(a)}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
             </View>
 
             {sectionTitle('ТРАВМЫ')}

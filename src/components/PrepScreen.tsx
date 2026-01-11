@@ -4,15 +4,19 @@ import { speak } from '../utils/generator';
 
 interface PrepScreenProps {
     onReady: () => void; // Called when time is up or user skips
+    onCancel: () => void;
+    firstExerciseName?: string;
 }
 
-export const PrepScreen: React.FC<PrepScreenProps> = ({ onReady }) => {
+export const PrepScreen: React.FC<PrepScreenProps> = ({ onReady, onCancel, firstExerciseName }) => {
     const [timeLeft, setTimeLeft] = useState(120);
 
     useEffect(() => {
 
         // Start prep speech
-        speak("Подготовка к тренировке. У вас есть две минуты.");
+        speak(firstExerciseName
+            ? `Подготовка к тренировке. Первое упражнение: ${firstExerciseName}. У вас есть две минуты.`
+            : "Подготовка к тренировке. У вас есть две минуты.");
 
         const interval = setInterval(() => {
             setTimeLeft((prev) => {
@@ -52,9 +56,15 @@ export const PrepScreen: React.FC<PrepScreenProps> = ({ onReady }) => {
                 <Text className="text-white font-sans font-bold text-3xl uppercase text-center mb-2">
                     ПРИГОТОВЬТЕСЬ
                 </Text>
-                <Text className="text-gray-500 text-center px-8">
+                <Text className="text-gray-500 text-center px-8 mb-6">
                     Наденьте экипировку, включите музыку и настройтесь на работу.
                 </Text>
+                {firstExerciseName && (
+                    <View className="bg-gray-900 border border-gray-700 px-6 py-3 rounded-xl items-center">
+                        <Text className="text-gray-500 text-[10px] uppercase mb-1">ПЕРВОЕ УПРАЖНЕНИЕ</Text>
+                        <Text className="text-white font-bold text-lg text-center uppercase">{firstExerciseName}</Text>
+                    </View>
+                )}
             </View>
 
             <View className="items-center justify-center h-64 w-64 rounded-full border-4 border-gray-800 relative">

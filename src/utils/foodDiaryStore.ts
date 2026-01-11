@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FoodItemJSON, DailyNutritionSummary, MealType, NutritionPlan, FoodAnalysisResult } from '../types';
 
 const STORAGE_KEY = 'food_diary_entries';
+const SHARED_FOOD_USER_ID = 'be55ca-shared-user'; // Fixed ID for single-timeline logic
 
 // Helper: Generate UUID (if not using a library)
 export const generateUUID = (): string => {
@@ -13,32 +14,36 @@ export const generateUUID = (): string => {
     });
 };
 
-// Helper: Get today's key YYYY-MM-DD
+// Helper: Get today's key YYYY-MM-DD (Local Time)
 export const getLocalDateKey = (date: Date): string => {
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 };
 
-// --- CORE STORE LOGIC ---
+// --- INTERNAL STORAGE HELPERS ---
+interface FoodDiaryDB {
+    [date: string]: FoodItemJSON[];
+}
 
-// 1. Load Local Entries
-const loadLocalEntries = async (): Promise<FoodItemJSON[]> => {
+const loadLocalEntriesDict = async (): Promise<FoodDiaryDB> => {
     try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (!raw) return [];
-        return JSON.parse(raw);
-    } catch (e) {
-        console.error('Failed to load local food entries', e);
-        return [];
+        if (!raw) return {};
+        // Check if migrated. Old formatting was Array. New is Dict.
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+            return {};
+        }
+        return parsed;
+    } catch {
+        return {};
     }
 };
 
-// 2. Save Local Entries
-const saveLocalEntries = async (entries: FoodItemJSON[]) => {
-    try {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-    } catch (e) {
-        console.error('Failed to save local food entries', e);
-    }
+const saveLocalEntriesDict = async (db: FoodDiaryDB) => {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(db));
 };
 
 /**
@@ -46,15 +51,12 @@ const saveLocalEntries = async (entries: FoodItemJSON[]) => {
  */
 const syncDayWithSupabase = async (dateKey: string, entriesForDay: FoodItemJSON[]) => {
     try {
-        const userId = (global as any).userId;
-        if (!userId || userId === 'offline-user') return;
-
         console.log(`[FoodStore] Syncing ${dateKey} to Supabase...`, entriesForDay);
 
         const { error } = await supabase
             .from('food_diary')
             .upsert({
-                user_id: userId,
+                user_id: SHARED_FOOD_USER_ID,
                 date: dateKey,
                 day_json: entriesForDay,
                 updated_at: new Date().toISOString()
@@ -79,30 +81,12 @@ export const addFoodItem = async (
     item: Omit<FoodItemJSON, 'id'>,
     dateKey: string
 ): Promise<string> => {
-    const all = await loadLocalEntries();
-
     // Create full object
     const newItem: FoodItemJSON = {
         ...item,
-        id: generateUUID() // Always generate new ID
+        id: generateUUID(), // Always generate new ID
+        createdAt: new Date().toISOString()
     };
-
-    // Add to local
-    // We store ALL entries in one big array locally for simplicity, 
-    // but in future might want to split by keys.
-    // For now, let's assume `STORAGE_KEY` holds *everything* for valid cache.
-    // But to match "day_json" structure, we might want to store { [date]: items[] }.
-    // Let's stick to flat list locally for now to minimize refactor from "Native" repo logic 
-    // IF the native logic used flat list. 
-    // Actually, looking at previous file, it used flat list. We can adapt.
-
-    // But wait, we need to add theDATE to the item locally so we know when it was eaten?
-    // The JSON structure `FoodItemJSON` DOES NOT have a date field.
-    // This implies the date is determined by the ROW in Supabase (date column).
-    // So locally, we MUST store it with a date attached, otherwise we lose context.
-
-    // Let's wrap local storage slightly differently or add a transient field.
-    // Hack: We'll modify the Local Storage to be a Dictionary: { "YYYY-MM-DD": [items] }
 
     let db = await loadLocalEntriesDict();
     if (!db[dateKey]) db[dateKey] = [];
@@ -199,13 +183,10 @@ export const getDayEntries = async (dateKey: string): Promise<FoodItemJSON[]> =>
  */
 export const syncPullFromSupabase = async (dateKey: string) => {
     try {
-        const userId = (global as any).userId;
-        if (!userId) return;
-
         const { data, error } = await supabase
             .from('food_diary')
             .select('day_json')
-            .eq('user_id', userId)
+            .eq('user_id', SHARED_FOOD_USER_ID)
             .eq('date', dateKey)
             .single();
 
@@ -220,29 +201,36 @@ export const syncPullFromSupabase = async (dateKey: string) => {
     }
 }
 
-
-// --- INTERNAL STORAGE HELPERS ---
-interface FoodDiaryDB {
-    [date: string]: FoodItemJSON[];
-}
-
-const loadLocalEntriesDict = async (): Promise<FoodDiaryDB> => {
+/**
+ * Fetch ALL food data for the shared user (History)
+ * Initializes local cache with everything found in Supabase.
+ */
+export const fetchAllFoodData = async () => {
     try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (!raw) return {};
-        // Check if migrated. Old formatting was Array. New is Dict.
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-            // Migration logic would go here if we had old users.
-            // For now, reset or assume empty if structure mismatch
-            return {};
-        }
-        return parsed;
-    } catch {
-        return {};
-    }
-};
+        console.log('[FoodStore] Fetching full history...');
+        const { data, error } = await supabase
+            .from('food_diary')
+            .select('user_id, date, day_json')
+            .like('user_id', `${SHARED_FOOD_USER_ID}%`); // Use LIKE to match potential trailing whitespace
 
-const saveLocalEntriesDict = async (db: FoodDiaryDB) => {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+        if (error) console.error('[FoodStore] Fetch error:', error);
+
+        if (data && data.length > 0) {
+            const db = await loadLocalEntriesDict();
+            let count = 0;
+            data.forEach(row => {
+                // Trim ID to handle dirty data
+                if (row.user_id.trim() === SHARED_FOOD_USER_ID && row.day_json) {
+                    db[row.date] = row.day_json as FoodItemJSON[];
+                    count++;
+                }
+            });
+            await saveLocalEntriesDict(db);
+            console.log(`[FoodStore] Loaded history for ${count} days.`);
+        } else {
+            console.log('[FoodStore] No history found (data empty).');
+        }
+    } catch (e) {
+        console.error('[FoodStore] Failed to fetch history', e);
+    }
 };

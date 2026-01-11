@@ -95,6 +95,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialTimeline, onFinish,
 
         timerRef.current = setInterval(() => {
             setTimeLeft((prev) => {
+                // Countdown Beeps Logic (Rest/Prep/Trans -> Work)
+                const nextIsWork = timeline[currentIndex + 1]?.type === BlockType.WORK;
+                const isBreak = currentBlock.type === BlockType.REST || currentBlock.type === BlockType.TRANSITION || currentBlock.type === BlockType.PREP;
+
+                if (isBreak && nextIsWork && prev <= 4 && prev > 1) {
+                    // Beep at 3, 2, 1 (prev is decremented after this check usually, but here we are IN the tick)
+                    // If prev is 4 -> next tick will be 3. Let's play now?
+                    // Actually simplest is checking the NEW value or CURRENT value.
+                    // at 3s, 2s, 1s.
+                    // Let's play audio helper
+                    const { playCountdownBeep } = require('../utils/audio');
+                    playCountdownBeep();
+                }
+
                 if (prev <= 1) {
                     handleNextBlock();
                     return 0;
@@ -111,13 +125,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialTimeline, onFinish,
     // Metronome Logic
     useEffect(() => {
         if (currentBlock.type !== BlockType.WORK || isPaused || showCamera || showExitConfirm) return;
-        if (timeLeft <= 10) return; // Buffer zone
+        // if (timeLeft <= 10) return; // Buffer zone? Maybe user wants metronome until the end. Let's keep it ticking.
 
         const elapsed = currentBlock.duration - timeLeft;
-        if (elapsed % 2 === 0) {
-            const isConcentricPhase = (elapsed / 2) % 2 !== 0;
-            playMetronomeClick(isConcentricPhase);
-        }
+        // Metronome: 60 BPM (1 tick per second).
+        // Beat 1: Strong, Beat 2: Weak.
+        // Assuming starting at 0: Strong, 1: Weak, 2: Strong...
+        const isStrong = elapsed % 2 === 0;
+        playMetronomeClick(isStrong);
+
     }, [timeLeft, currentBlock, isPaused, showCamera, showExitConfirm]);
 
 
@@ -497,7 +513,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialTimeline, onFinish,
                 )}
 
                 {currentBlock.type === BlockType.PREP && (
-                    <Text className="text-4xl font-sans font-bold uppercase text-flow-orange text-center">ПРИГОТОВИТЬСЯ</Text>
+                    <View className="items-center space-y-6 gap-6">
+                        <Text className="text-4xl font-sans font-bold uppercase text-flow-orange text-center">ПРИГОТОВИТЬСЯ</Text>
+                        <View className="border-t border-gray-800 pt-4 items-center">
+                            <Text className="text-gray-500 text-sm uppercase mb-1">ДАЛЕЕ</Text>
+                            <Text className="text-xl text-white font-sans text-center">
+                                {timeline.find(b => b.type === BlockType.WORK)?.exerciseName || 'Тренировка'}
+                            </Text>
+                        </View>
+                    </View>
                 )}
             </View>
 

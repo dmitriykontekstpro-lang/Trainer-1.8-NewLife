@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { INITIAL_SCHEDULE, INITIAL_TEMPLATES, DAYS_OF_WEEK } from './src/data';
-import { TimelineBlock, WeeklySchedule, WorkoutTemplate, WorkoutSettings, UserProfile, NutritionPlan, DailyNutritionSummary } from './src/types';
+import { TimelineBlock, WeeklySchedule, WorkoutTemplate, WorkoutSettings, UserProfile, NutritionPlan, DailyNutritionSummary, BlockType } from './src/types';
 import { prepareWorkoutTimeline } from './src/utils/progression';
 import { preGenerateTimelineAudio } from './src/utils/generator';
 import { initUserId } from './src/lib/supabaseClient';
@@ -19,7 +19,7 @@ import { FoodDiaryScreen } from './src/components/FoodDiary/FoodDiaryScreen';
 import { loadLocalHistory, HistoryState } from './src/utils/historyStore';
 import { useFonts } from 'expo-font';
 import { getLocalDateKey } from './src/utils/dateHelpers';
-import { getDailySummary } from './src/utils/foodDiaryStore';
+import { getDailySummary, fetchAllFoodData } from './src/utils/foodDiaryStore';
 
 const DEFAULT_WORKOUT_SETTINGS: WorkoutSettings = {
   setsPerExercise: 3,
@@ -65,6 +65,11 @@ export default function App() {
     const init = async () => {
       await initUserId();
       try {
+        // Fetch full food history for shared timeline
+        fetchAllFoodData().then(() => {
+          loadFoodData();
+        });
+
         // Check Onboarding
         const savedProfile = await AsyncStorage.getItem('user_profile');
         if (savedProfile) {
@@ -266,6 +271,7 @@ export default function App() {
         <PrepScreen
           onReady={() => setView('WORKOUT')}
           onCancel={() => setView('LOBBY')}
+          firstExerciseName={activeTimeline.find(b => b.type === BlockType.WORK)?.exerciseName}
         />
       )}
 

@@ -12,6 +12,7 @@ export interface FoodItemJSON {
     weight: number;
     portion?: string;
     image_url?: string | null; // Optional, if we want to support photos for specific items in future
+    createdAt?: string; // Timestamp of when the item was added
 }
 
 export interface DailyNutritionSummary {
