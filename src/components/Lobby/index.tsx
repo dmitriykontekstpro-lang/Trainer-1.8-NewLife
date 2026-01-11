@@ -14,6 +14,7 @@ interface LobbyProps {
     totalDuration?: number;
     onAskTrainer: () => void;
     onOpenFoodDiary: () => void;
+    onOpenWorkoutDiary: () => void;
 
     // New Props for Data Logic
     dailySummary?: DailyNutritionSummary | null;
@@ -30,6 +31,7 @@ export const Lobby: React.FC<LobbyProps> = ({
     totalDuration,
     onAskTrainer,
     onOpenFoodDiary,
+    onOpenWorkoutDiary,
     dailySummary,
     userProfile
 }) => {
@@ -180,16 +182,18 @@ export const Lobby: React.FC<LobbyProps> = ({
                     </View>
                 </LobbyCard>
 
-                {/* 4. Log Card (Placeholder) */}
+                {/* 4. Log Card */}
                 <LobbyCard
                     title="ДНЕВНИК"
                     icon="📅"
-                    onPress={() => { }}
-                    disabled={true}
+                    onPress={onOpenWorkoutDiary}
                 >
-                    <View className="items-center justify-center py-4 opacity-50">
-                        <Text className="text-gray-600 font-bold text-xs uppercase text-center">
-                            Скоро
+                    <View className="items-center justify-center py-4">
+                        <Text className="text-gray-400 font-bold text-[10px] uppercase text-center mb-1">
+                            ИСТОРИЯ
+                        </Text>
+                        <Text className="text-white font-bold text-lg uppercase text-center leading-5">
+                            ВСЕ{'\n'}ТРЕНИРОВКИ
                         </Text>
                     </View>
                 </LobbyCard>

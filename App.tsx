@@ -20,6 +20,8 @@ import { loadLocalHistory, HistoryState } from './src/utils/historyStore';
 import { useFonts } from 'expo-font';
 import { getLocalDateKey } from './src/utils/dateHelpers';
 import { getDailySummary, fetchAllFoodData } from './src/utils/foodDiaryStore';
+import { WorkoutDiaryScreen } from './src/components/WorkoutDiary/WorkoutDiaryScreen';
+import { saveWorkoutLog } from './src/utils/workoutDiaryStore';
 
 const DEFAULT_WORKOUT_SETTINGS: WorkoutSettings = {
   setsPerExercise: 3,
@@ -37,6 +39,7 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showTrainerModal, setShowTrainerModal] = useState(false);
   const [showFoodDiary, setShowFoodDiary] = useState(false);
+  const [showWorkoutDiary, setShowWorkoutDiary] = useState(false);
   const [dailySummary, setDailySummary] = useState<DailyNutritionSummary | null>(null);
 
   // Settings Navigation
@@ -258,6 +261,7 @@ export default function App() {
           onOpenProfile={() => openSettings('PROFILE')}
           onAskTrainer={() => setShowTrainerModal(true)}
           onOpenFoodDiary={() => setShowFoodDiary(true)}
+          onOpenWorkoutDiary={() => setShowWorkoutDiary(true)}
           isSyncing={isSyncing}
           totalDuration={activeTimeline.length > 0
             ? Math.round(activeTimeline.reduce((acc, b) => acc + (b.duration || 0), 0) / 60)
@@ -279,7 +283,39 @@ export default function App() {
         <Dashboard
           initialTimeline={activeTimeline}
           disableHistoryUpdate={todayTemplate?.type === 'CUSTOM'}
-          onFinish={async () => {
+          onFinish={async (completedTimeline: any) => {
+            // Updated to handle passed timeline if available, mainly so we don't crash
+            // Saving logic moved/duplicated here but requires Dashboard update to be effective
+            try {
+              if (completedTimeline && Array.isArray(completedTimeline)) {
+                console.log("Saving workout log...");
+                const finishedExercises = completedTimeline
+                  .filter((b: TimelineBlock) => b.type === BlockType.WORK && b.exerciseName)
+                  .map((b: TimelineBlock) => ({
+                    id: b.exerciseId || 'unknown',
+                    name: b.exerciseName || 'Unknown',
+                    weight: b.weight || 0,
+                    sets: b.setNumber === b.totalSets ? b.totalSets : (b.setNumber || 0),
+                    skipped: false,
+                  }));
+
+                const grouped: Record<string, any> = {};
+                finishedExercises.forEach((ex: any) => {
+                  if (!grouped[ex.name]) {
+                    grouped[ex.name] = { ...ex, sets: 0 };
+                  }
+                  grouped[ex.name].sets += 1;
+                  grouped[ex.name].weight = ex.weight;
+                });
+
+                await saveWorkoutLog(
+                  getLocalDateKey(new Date()),
+                  Object.values(grouped)
+                );
+              }
+            } catch (e) {
+              console.error("Failed to save to diary", e);
+            }
             await refreshHistory();
             setView('LOBBY');
           }}
@@ -321,6 +357,16 @@ export default function App() {
           onClose={() => setShowFoodDiary(false)}
         />
       </Modal>
+
+      {/* Workout Diary Modal */}
+      <Modal
+        visible={showWorkoutDiary}
+        animationType="slide"
+        presentationStyle="fullScreen"
+      >
+        <WorkoutDiaryScreen onClose={() => setShowWorkoutDiary(false)} />
+      </Modal>
+
     </View>
   );
 }

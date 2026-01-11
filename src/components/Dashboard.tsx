@@ -10,7 +10,7 @@ import { updateLocalHistory } from '../utils/historyStore';
 
 interface DashboardProps {
     initialTimeline: TimelineBlock[];
-    onFinish: () => void;
+    onFinish: (timeline?: TimelineBlock[]) => void;
     disableHistoryUpdate?: boolean;
 }
 
@@ -283,7 +283,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialTimeline, onFinish,
                 console.log("[Dashboard] Saved successfully.");
             }
 
-            setTimeout(() => onFinish(), 1000);
+            // Prepare Hydrated Timeline for parent
+            const completedTimeline = timeline.map(block => {
+                if (block.type === BlockType.WORK && block.exerciseId) {
+                    return {
+                        ...block,
+                        weight: editedWeights[block.exerciseId] || block.weight || 0
+                    };
+                }
+                return block;
+            });
+
+            setTimeout(() => onFinish(completedTimeline), 1000);
         } catch (err) {
             console.error("Save fatal error", err);
             speak("Ошибка сохранения.");
