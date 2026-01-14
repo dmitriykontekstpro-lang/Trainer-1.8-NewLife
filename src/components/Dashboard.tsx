@@ -7,6 +7,7 @@ import { supabase, WorkoutRecord, ExerciseResult, getOrCreateUserId } from '../l
 import { playMetronomeClick } from '../utils/audio';
 import { Ionicons } from '@expo/vector-icons';
 import { updateLocalHistory } from '../utils/historyStore';
+import { saveUserWeight } from '../utils/weightStore';
 
 interface DashboardProps {
     initialTimeline: TimelineBlock[];
@@ -162,9 +163,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialTimeline, onFinish,
     const handleCameraResult = (weight: number) => {
         console.log(`[Dashboard] handleCameraResult: ${weight}, blockType: ${currentBlock.type}`);
 
+        const syncWeight = async (w: number) => {
+            try {
+                // Assuming saveUserWeight is imported
+                await saveUserWeight(w, new Date());
+                console.log(`[Dashboard] Synced weight ${w} to user history`);
+            } catch (e) {
+                console.error("[Dashboard] Failed to sync weight history", e);
+            }
+        };
+
         if (currentBlock.type === BlockType.CHECK_IN) {
             console.log('[Dashboard] Setting Start Weight');
             setStartBodyWeight(weight);
+            syncWeight(weight);
             speak(`Вес атлета: ${weight} килограмм.`);
             setShowCamera(false);
             setIsPaused(false);
@@ -175,12 +187,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ initialTimeline, onFinish,
         if (currentBlock.type === BlockType.CHECK_OUT) {
             console.log('[Dashboard] Setting End Weight');
             setEndBodyWeight(weight);
+            syncWeight(weight);
             speak(`Финальный вес: ${weight} килограмм.`);
             setShowCamera(false);
             setIsPaused(false);
             handleNextBlock();
             return;
         }
+        // ...
 
         if (currentBlock.type === BlockType.FINISH) {
             console.log('[Dashboard] Late End Weight on FINISH');

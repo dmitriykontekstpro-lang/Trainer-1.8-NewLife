@@ -73,12 +73,13 @@ export const FoodCameraModal: React.FC<FoodCameraModalProps> = ({ visible, onClo
     };
 
     const handleSend = async () => {
-        if (!photo) return;
         setAnalyzing(true);
         setError(null);
 
         try {
             const dateKey = getLocalDateKey(new Date());
+
+            if (!photo) return;
 
             // 1. Add entry locally (Pending state)
             const newItemId = await addFoodItem({
@@ -102,7 +103,7 @@ export const FoodCameraModal: React.FC<FoodCameraModalProps> = ({ visible, onClo
                 base64 = await FileSystem.readAsStringAsync(photo, { encoding: 'base64' });
             }
 
-            // 3. AI Analysis with structured hints
+            // 3. AI Analysis (Single Pass with OCR Chain-of-Thought)
             const analysis = await analyzeFoodPhotoWithRetry(base64, {
                 foodName: foodName || undefined,
                 weight: weight || undefined,
@@ -119,8 +120,6 @@ export const FoodCameraModal: React.FC<FoodCameraModalProps> = ({ visible, onClo
                         { text: 'Отмена', onPress: resetAndClose, style: 'cancel' }
                     ]
                 );
-                // We might want to remove the empty entry here, but leaving it as "Analyzing..." allows user to fix manually later if we implemented edit. 
-                // For now, let's just stop.
                 setAnalyzing(false);
                 return;
             }
@@ -134,8 +133,9 @@ export const FoodCameraModal: React.FC<FoodCameraModalProps> = ({ visible, onClo
                 carbs: analysis.carbs,
                 weight: analysis.weight,
                 portion: analysis.portion,
-                foodType: analysis.foodType
-            }, dateKey);
+                foodType: analysis.foodType,
+                confidence: analysis.confidence
+            } as any, dateKey);
 
             // 6. Done
             onSuccess();
@@ -184,7 +184,11 @@ export const FoodCameraModal: React.FC<FoodCameraModalProps> = ({ visible, onClo
                 {/* 1. Camera / Preview Area */}
                 <View className="flex-1 relative">
                     {!photo ? (
-                        <CameraView ref={cameraRef} style={{ flex: 1 }} facing={facing} />
+                        <CameraView
+                            ref={cameraRef}
+                            style={{ flex: 1 }}
+                            facing={facing}
+                        />
                     ) : (
                         <Image source={{ uri: photo }} className="flex-1 bg-black" resizeMode="cover" />
                     )}

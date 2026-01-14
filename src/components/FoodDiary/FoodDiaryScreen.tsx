@@ -160,9 +160,18 @@ export const FoodDiaryScreen: React.FC<FoodDiaryScreenProps> = ({ userProfile, o
                                     <Text className="text-white font-bold text-base mb-1">
                                         {entry.name || 'Анализируется...'}
                                     </Text>
-                                    {entry.portion && (
-                                        <Text className="text-gray-500 text-xs mb-2">{entry.portion}</Text>
-                                    )}
+
+                                    {/* Weight & Portion Row */}
+                                    <View className="flex-row items-center mb-2">
+                                        <Text className="text-gray-400 text-xs font-bold mr-2">
+                                            {entry.weight > 0 ? `${entry.weight} г` : ''}
+                                        </Text>
+                                        {entry.portion && (
+                                            <Text className="text-gray-600 text-xs border-l border-gray-700 pl-2">
+                                                {entry.portion}
+                                            </Text>
+                                        )}
+                                    </View>
                                     {/* ALWAYS SHOW MACROS IF > 0 */}
                                     <View className="flex-row gap-3">
                                         <Text className="text-flow-green text-xs">
@@ -184,10 +193,27 @@ export const FoodDiaryScreen: React.FC<FoodDiaryScreenProps> = ({ userProfile, o
                             {/* Small Red Cross Delete Button */}
                             <TouchableOpacity
                                 onPress={() => handleDeleteEntry(entry.id)}
-                                className="absolute top-3 right-3 w-6 h-6 bg-red-600 rounded-full items-center justify-center shadow-sm"
+                                className="absolute top-2 right-2 w-6 h-6 bg-red-900/50 rounded-full items-center justify-center"
                             >
-                                <Text className="text-white text-[10px] font-bold">✕</Text>
+                                <Text className="text-red-400 text-[10px] font-bold">✕</Text>
                             </TouchableOpacity>
+
+                            {/* CONFIDENCE BADGE */}
+                            {entry.confidence && (
+                                <View className="absolute bottom-2 right-2 bg-black/40 px-2 py-1 rounded flex-row items-center gap-1 border border-gray-800">
+                                    <Text style={{
+                                        color: entry.confidence === 'EXACT' ? '#00E0FF' :
+                                            entry.confidence === 'HIGH' ? '#39FF14' :
+                                                entry.confidence === 'MEDIUM' ? '#FFFF00' : '#FF6F00',
+                                        fontSize: 10,
+                                        fontWeight: 'bold'
+                                    }}>
+                                        {entry.confidence === 'EXACT' ? '✓ 100%' :
+                                            entry.confidence === 'HIGH' ? '● ВЫС.' :
+                                                entry.confidence === 'MEDIUM' ? '● СРЕД.' : '? НИЗ.'}
+                                    </Text>
+                                </View>
+                            )}
                         </View>
                     ))
                 ) : (

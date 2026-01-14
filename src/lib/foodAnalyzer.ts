@@ -1,7 +1,7 @@
 const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
 
 export interface FoodAnalysisResult {
-    isFood: boolean; // NEW: true if food detected
+    isFood: boolean;
     foodName: string;
     calories: number;
     protein: number;
@@ -10,6 +10,8 @@ export interface FoodAnalysisResult {
     portion: string;
     weight: number;
     foodType: string;
+    confidence: 'EXACT' | 'HIGH' | 'MEDIUM' | 'LOW';
+    recognizedText?: string;
 }
 
 interface UserHints {
@@ -31,35 +33,41 @@ const buildPrompt = (hints: UserHints): string => {
     }
 
     const hintsText = hintsParts.length > 0
-        ? `ПОДСКАЗКИ ПОЛЬЗОВАТЕЛЯ (учитывай их приоритетно):\n${hintsParts.join('\n')}`
+        ? `ПОДСКАЗКИ ПОЛЬЗОВАТЕЛЯ (учитывай их приоритетно, особенно вес!):\n${hintsParts.join('\n')}`
         : 'ПОДСКАЗОК НЕТ, определи сам.';
 
     return `
-Ты эксперт по питанию. Твоя задача как можно точнее определить количество калорий, белков, жиров, углеводов для более точного анализа питания качества еды твоего клиента. Проанализируй фото.
+Ты эксперт по питанию и OCR-сканер. Твоя задача выполниться В ДВА ЭТАПА в рамках одного ответа.
 
-ЗАДАЧА №1: ПРОВЕРКА
-Есть ли на фото еда или напиток? 
-Если НЕТ - верни JSON: { "isFood": false } и больше ничего.
+ЭТАП 1: OCR (Распознавание текста)
+Внимательно прочитай ВЕСЬ текст на фото (название, бренд, вес, nutrition facts, состав).
+Если текста нет - напиши "Текст не найден".
 
-ЗАДАЧА №2: АНАЛИЗ (Если еда есть)
+ЭТАП 2: АНАЛИЗ ПИТАНИЯ
+Используя текст из Этапа 1 и визуал, определи КБЖУ.
+- Если нашел таблицу КБЖУ: пересчитай на ВЕСЬ вес упаковки.
+- Если нашел вес: используй его.
+- Если текста нет: оценивай визуально.
+
+ПОДСКАЗКИ ПОЛЬЗОВАТЕЛЯ:
 ${hintsText}
 
-1. Определи название блюда (если пользователь не указал).
-2. Оцени вес (если пользователь не указал).
-3. Рассчитай КБЖУ.
-
-ФОРМАТ JSON для еды (строго):
+ФОРМАТ JSON (строго):
 {
    "isFood": true,
-   "foodName": "Название",
-   "portion": "описание (напр. 1 тарелка)",
-   "weight": 250, (число в граммах)
+   "recognizedText": "Здесь выпиши весь найденный текст с упаковки (бренд, состав, кбжу цифры)...",
+   "foodName": "Название Продукта",
+   "portion": "описание порции",
+   "weight": 100, (число в граммах)
    "foodType": "Категория",
-   "calories": 450,
-   "protein": 35,
-   "fats": 12,
-   "carbs": 50
+   "calories": 250, (ИТОГО)
+   "protein": 10,
+   "fats": 10,
+   "carbs": 30,
+   "confidence": "HIGH" (EXACT если КБЖУ считано с упаковки, иначе HIGH/MEDIUM/LOW)
 }
+
+ВАЖНО: Поле "recognizedText" обязательно заполни тем, что смог прочитать. Это критично для точности.
 `.trim();
 };
 
@@ -118,7 +126,7 @@ export const analyzeFoodPhoto = async (
         // Check isFood flag
         if (result.isFood === false) {
             return {
-                isFood: false, foodName: '', calories: 0, protein: 0, fats: 0, carbs: 0, portion: '', weight: 0, foodType: ''
+                isFood: false, foodName: '', calories: 0, protein: 0, fats: 0, carbs: 0, portion: '', weight: 0, foodType: '', confidence: 'LOW'
             };
         }
 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Alert, LayoutAnimation, Platform, UIManager } from 'react-native';
-import { UserProfile, Gender, MainGoal, ExperienceLevel, TrainingLocation, ActivityLevel, SleepDuration, NutritionPlan } from '../types';
+import { UserProfile, MainGoal, ActivityLevel, NutritionPlan } from '../types';
 import { calculateNutrition } from '../utils/calculations';
+import { saveUserWeight, getLatestUserWeight } from '../utils/weightStore';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -36,6 +37,18 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile: initialPr
     const [isActivityOpen, setIsActivityOpen] = useState(false);
     const [projectedNutrition, setProjectedNutrition] = useState<NutritionPlan | null>(null);
 
+    // Initial Load: Get actual weight from Supabase History
+    useEffect(() => {
+        const loadWeight = async () => {
+            const w = await getLatestUserWeight();
+            if (w) {
+                console.log('Loaded weight from Supabase history:', w);
+                setProfile(p => ({ ...p, weight: w }));
+            }
+        };
+        loadWeight();
+    }, []);
+
     // Calc on change
     useEffect(() => {
         // Only calc if we have basic bio
@@ -60,9 +73,20 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile: initialPr
         });
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        // 1. Save Weight History to Supabase
+        if (profile.weight) {
+            try {
+                await saveUserWeight(profile.weight, new Date());
+            } catch (e) {
+                console.error('Weight save failed', e);
+                // Don't block UI, proceed to save profile
+            }
+        }
+
+        // 2. Save Full Profile
         onSave(profile as UserProfile);
-        Alert.alert("Успешно", "Данные профиля обновлены.");
+        Alert.alert("Успешно", "Данные профиля и веса обновлены.");
     };
 
     const sectionTitle = (title: string) => (
@@ -107,7 +131,6 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile: initialPr
         <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
             <Text className="text-2xl font-bold text-white mb-6 uppercase">Профиль Атлета</Text>
 
-            {/* CALCULATOR PREVIEW */}
             {/* CALCULATOR PREVIEW */}
             {projectedNutrition && (
                 <View className="mb-6 bg-gray-900 border border-green-900/50 p-4 rounded-xl">
@@ -191,7 +214,11 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile: initialPr
                     <TextInput
                         keyboardType="numeric"
                         value={String(profile.weight || '')}
-                        onChangeText={t => update('weight', parseInt(t) || 0)}
+                        onChangeText={t => {
+                            // Support float input (e.g. 80.5)
+                            const val = parseFloat(t);
+                            update('weight', isNaN(val) ? 0 : val);
+                        }}
                         className="bg-gray-900 text-white p-3 rounded border border-gray-700"
                     />
                 </View>
